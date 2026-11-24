@@ -1,0 +1,287 @@
+# ColdPlayersPlus - PvP bots (ColdMC). /cpp pvp reload re-reads this file.
+#
+# A PvP bot is an ordinary ColdPlayersPlus bot with a fighting brain attached. It is a real
+# player to the server: it takes real damage (armour, enchantments, effects, knockback), hits
+# through the server's own attack code (crits, sprint knockback, sweeping), dies and respawns
+# like anyone else, and inside KitPvP it joins the arena, picks a kit and plays by KitPvP's rules
+# (spawn protection, safe zones, soup, kit abilities, kill credit).
+#
+# The brain is held to human limits set per profile below: reaction time, aim error, turn speed,
+# clicks per second, missed swings, imperfect strafing and mistakes. A trained model (see
+# "learning") changes WHAT the bot chooses to do, never those limits - so training makes bots
+# play more like people, not superhuman.
+#
+# Commands (permission cpp.pvp, default op): /cpp pvp help
+
+enabled: true
+
+# While no real player is in a KitPvP arena world (or a free-fight world), every PvP bot lets go of
+# its keys and stands still, auto-fill neither adds nor removes bots, and nothing is recorded. They
+# pick up again within a second of a player arriving. A bot sent after someone with
+# /cpp pvp fight stays awake.
+idle-when-empty: true
+
+# Most PvP bots that may be active at once (assigned by command and auto-fill together).
+max-bots: 8
+
+kitpvp:
+  # Use KitPvP when it is installed: bots join its arena and fight only other KitPvP players.
+  enabled: true
+  # Arena bots join. '' = KitPvP's default arena.
+  arena: ''
+  # Kits a bot may pick. [] = every enabled, non-hidden kit that needs no permission (VIP/MVP kits
+  # stay with ranked players unless listed here). Bots never pay for a kit.
+  kits: []
+  # Tier a bot equips: a number, or "max" for the kit's top tier, or "random".
+  kit-tier: 1
+  # How long a bot "browses the menu" after spawning or dying before it picks a kit, seconds.
+  pick-kit-seconds: {min: 2, max: 6}
+
+  # Keep the arena populated. Bots are spawned and removed by this alone; bots you assign by
+  # command are never removed by it.
+  auto-fill:
+    enabled: true
+    # Always at least this many bots in the arena.
+    min-bots: 2
+    # Add bots until real players + bots reach this, and take bots away as real players arrive.
+    fill-to: 6
+    check-seconds: 20
+    # A new bot draws its profile from this list (repeat a name to make it more likely).
+    profiles: [rookie, casual, casual, skilled]
+    # Where a new bot appears before it joins (it is moved to the arena by KitPvP).
+    # '' = the arena's first spawn.
+    spawn-location: ''
+
+# Names for bots spawned by auto-fill and /cpp pvp spawn. A free one is picked at random.
+# [] = "Bot" + 4 digits. A name that is a real account wears that account's skin
+# (skin.by-name in config.yml).
+names:
+  - Nordkap
+  - sippen_
+  - Kaiiro
+  - Velmir
+  - lunarr_
+  - Brisk_
+  - frostbyt3
+  - Hjalmar_
+  - OrvixPvP
+  - tidepool
+  - Ashwyn
+  - Kestrell
+  - mirokk
+  - Snoeflinga
+  - Vexwin
+  - Pelle_K
+  - Graavik
+  - olliebear_
+  - Runesmith
+  - Zhyrr
+  - emberkid
+  - coldtoast
+  - Tovlund
+  - NoxKnight_
+  - Fjellrev
+  - quillon
+  - Saphyre
+  - jaxxo_
+  - Draven_LT
+  - Ylvi
+  - Marrow_
+  - sleetstorm
+  - Brennik
+  - tomtenisse
+  - Ivarr_
+  - Pixelfjord
+  - Hexley
+  - rimfrost_
+  - Calvar
+  - wintermint
+
+combat:
+  # Bots go after real players.
+  bots-target-players: true
+  # Bots fight each other with no human involved.
+  bots-target-bots: true
+  # How far a bot looks for someone to fight, blocks.
+  target-range: 24
+  # Outside KitPvP (kitpvp.enabled false, or the bot is not in it): worlds where an assigned bot
+  # may fight anyone in range. [] = nowhere; bots outside KitPvP then only fight on /cpp pvp fight.
+  free-worlds: []
+  # Killing a bot gives no MMOCore experience. Fighting and Archery pay 50 EXP per player kill,
+  # and Kit PvP kills count (MMOCore pays even on the deaths Kit PvP calls off), so without this
+  # bots could be farmed for levels. Done by tagging every bot the way MMOCore tags spawner mobs.
+  no-kill-exp: true
+  # Bots never pick, chase or hit anyone standing where WorldGuard denies pvp, and never swing
+  # from such a spot themselves. (Unset pvp counts as allowed, as in WorldGuard.)
+  respect-worldguard: true
+  # Bots leave anyone within this many blocks of an arena spawn alone, do not fight from inside
+  # it, and roam outside it. Covers production's kitpvpsafe region, which has no pvp flag.
+  # 0 = off (then only KitPvP's own spawn protection and Safe-Radius apply).
+  spawn-safe-radius: 10
+  # A bot never sets blocks on fire: flint and steel, fire charges, fireballs and burning arrows
+  # it causes do not light anything. Players it hits can still burn.
+  start-fires: false
+  # In KitPvP arena worlds, lava never lights blocks and fire never spreads or burns blocks - for
+  # everyone, because Prisoner's lava has no player attached and set arena maps alight on dev.
+  # Fire on players (fire aspect, Dragon, Pyro) is untouched.
+  no-arena-fire: true
+  # Never walk into the void, lava, fire or a drop deeper than this.
+  max-safe-drop: 4
+
+right-click:
+  # Right-clicking a bot opens its inventory (or its settings when sneaking). In these worlds that
+  # never happens, so a right-click aimed at a bot is an ordinary one (drinking soup). Every
+  # KitPvP arena world is always included. A name matches when the world's name starts with it.
+  blocked-worlds: [instance, world_kitbattle]
+
+respawn:
+  # Outside KitPvP a bot that dies is brought back by ColdPlayersPlus' own death.respawn-on-death
+  # (config.yml). Inside KitPvP, KitPvP respawns it at the arena spawn and the bot picks a kit again.
+  # true = a PvP bot that was removed by death outside KitPvP is spawned again and re-armed.
+  reattach-after-death: true
+
+learning:
+  # Record how REAL players fight in KitPvP (bots are never recorded). Only gameplay numbers are
+  # kept: distances, angles, health, armour, held weapon strength, the keys held (forward, back,
+  # left, right, jump, sprint), swings, soups and the result of each fight. No names, no UUIDs,
+  # no chat, no IPs: a player is a salted 8-character tag that cannot be turned back into a name.
+  collect: true
+  # Also record real players while they fight bots. Off: the model learns only from fights between
+  # two real players.
+  record-vs-bots: false
+  # A real player who has pressed no key, turned no further than half a degree, swung nothing and
+  # right-clicked nothing for this long is AFK: nothing is recorded for them, and nobody's fight
+  # against them is recorded either.
+  afk-seconds: 5
+  # A fight is kept only once the player has dealt at least this much damage AND taken at least
+  # this much (1 = half a heart). Until then its samples are held back; a fight that never gets
+  # there - standing near someone, a one-sided hit, an AFK target - is thrown away unwritten.
+  min-damage-dealt: 1
+  min-damage-taken: 1
+  # TESTING ONLY: also record bots (labelled with what their own brain chose), written to
+  # observations-test/ instead of observations/, to try the pipeline with no real player online.
+  # Never train a real model on it - bots would learn from bots.
+  test-record-bots: false
+  # One observation every N ticks per fighting player (2 = ten a second).
+  sample-every-ticks: 2
+  # Folder inside plugins/ColdPlayersPlus/ for observations and the model.
+  folder: pvp-learning
+  # Observations are buffered in memory and written by a background thread this often.
+  flush-seconds: 30
+  # A new observation file is started this often (each file is gzipped CSV).
+  file-minutes: 60
+  # In-memory buffer limit; beyond it the oldest unwritten observations are dropped.
+  max-queue: 20000
+  # When observation files reach this size on disk, collection pauses (and the console says so).
+  # Nothing is deleted unless retention-days is set.
+  max-disk-mb: 1024
+  # Observation files older than this are removed. 0 = keep forever.
+  retention-days: 0
+
+  # The trained model (written by the trainer on another computer, uploaded here).
+  model-file: combat-model.txt
+  # Re-read the model when the file changes, checked this often (0 = only on /cpp pvp model reload).
+  # A new model is checked before use and swapped in between two ticks; a bad file is refused
+  # and the bots keep the model (or heuristic) they had.
+  watch-model-seconds: 60
+
+# Bot skill. A bot gets one profile; `default` fills in anything a profile leaves out.
+# reaction-ms / cps / soup-ticks / refill-ticks: {min, max}.
+profiles:
+  default:
+    reaction-ms: {min: 250, max: 400}
+    aim-error-deg: 6
+    turn-speed: 18
+    cps: {min: 6, max: 9}
+    miss-chance: 0.15
+    reach: 2.9
+    strafe: 0.5
+    w-tap: 0.3
+    crit: 0.3
+    aggression: 0.6
+    soup-at: 0.45
+    soup-ticks: {min: 6, max: 12}
+    refill-ticks: {min: 20, max: 40}
+    mistakes: 0.15
+    model-weight: 0.6
+    temperature: 1.0
+    focus: 0.6
+    ability-use: 0.2
+  rookie:
+    reaction-ms: {min: 380, max: 600}
+    aim-error-deg: 11
+    turn-speed: 10
+    cps: {min: 4, max: 6}
+    miss-chance: 0.3
+    reach: 2.6
+    strafe: 0.15
+    w-tap: 0.0
+    crit: 0.05
+    aggression: 0.75
+    soup-at: 0.3
+    soup-ticks: {min: 10, max: 18}
+    refill-ticks: {min: 40, max: 70}
+    mistakes: 0.35
+    model-weight: 0.3
+    temperature: 1.5
+    focus: 0.8
+    ability-use: 0.05
+  casual:
+    reaction-ms: {min: 280, max: 450}
+    aim-error-deg: 7.5
+    turn-speed: 15
+    cps: {min: 5, max: 8}
+    miss-chance: 0.2
+    reach: 2.8
+    strafe: 0.4
+    w-tap: 0.15
+    crit: 0.2
+    aggression: 0.6
+    soup-at: 0.4
+    soup-ticks: {min: 7, max: 14}
+    refill-ticks: {min: 25, max: 50}
+    mistakes: 0.2
+    model-weight: 0.5
+    temperature: 1.2
+    focus: 0.65
+    ability-use: 0.15
+  skilled:
+    reaction-ms: {min: 220, max: 330}
+    aim-error-deg: 4.5
+    turn-speed: 22
+    cps: {min: 7, max: 10}
+    miss-chance: 0.12
+    reach: 2.9
+    strafe: 0.7
+    w-tap: 0.45
+    crit: 0.4
+    aggression: 0.55
+    soup-at: 0.45
+    soup-ticks: {min: 5, max: 10}
+    refill-ticks: {min: 18, max: 32}
+    mistakes: 0.1
+    model-weight: 0.7
+    temperature: 1.0
+    focus: 0.55
+    ability-use: 0.3
+  # The strongest stock profile is still below a good player: ~200 ms reactions, a few degrees
+  # of aim error, no perfect reach, and it still makes mistakes.
+  veteran:
+    reaction-ms: {min: 190, max: 280}
+    aim-error-deg: 3.5
+    turn-speed: 26
+    cps: {min: 8, max: 11}
+    miss-chance: 0.09
+    reach: 2.95
+    strafe: 0.85
+    w-tap: 0.6
+    crit: 0.5
+    aggression: 0.5
+    soup-at: 0.5
+    soup-ticks: {min: 4, max: 8}
+    refill-ticks: {min: 14, max: 26}
+    mistakes: 0.06
+    model-weight: 0.8
+    temperature: 0.9
+    focus: 0.5
+    ability-use: 0.4

@@ -1,0 +1,35 @@
+# ColdMC: bots that come and go by themselves, and alts that follow a real player.
+# Replaces the old "botter" Skripts. After editing: /cpp reload  (or /cpp reload autojoin)
+
+# Where these bots appear: "world, x, y, z, yaw, pitch". Empty = the main world's spawn.
+location: ''
+
+# ROTATION - one bot from the list joins, stays a while, leaves, and after a quiet spell the
+# next one comes. A name that is already online (a real player or another bot) is skipped.
+rotation:
+  enabled: true
+  # How many bots rotate at the same time.
+  at-once: 1
+  # Wait after a start or reload before the first one joins.
+  first-delay-seconds: 15
+  # How long each one stays online, picked at random between min and max (minutes).
+  online-minutes: {min: 4, max: 401}
+  # The quiet spell after one leaves, before the next joins (minutes). 730-1122 = the old
+  # Skript's 10-402 minutes plus its 12 hours.
+  offline-minutes: {min: 730, max: 1122}
+  names:
+  - ExampleBot1
+  - ExampleBot2
+  - ExampleBot3
+
+# ALIASES - a real player's alt. When the player joins, the alt joins too (on-join: true).
+# When the player leaves, the alt leaves a random number of minutes later (between min and
+# max), unless they came back first.
+# /ajoin (or /cpp alias) brings your own alt in by hand; /ajoin <player> brings theirs.
+aliases:
+  enabled: true
+  leave-after-minutes: {min: 5, max: 30}
+  players:
+    SomePlayer:
+      alias: SomePlayersAlt
+      on-join: true
