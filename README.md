@@ -8,3 +8,5 @@ ColdPlayersPlus is ColdMC's private build of **Fake Player Plugin** by Bill_Hub 
 - `tools/train_pvp_model.py`: trains the PvP model away from the server, using fights the servers recorded. Use `pull` or `pull-dev`, then `train`, `install-dev` and `stage`. The server only records fights and runs the finished model.
 
 `res/auto-join.yml` here is an example. The live names are kept on the server.
+
+The MIT licence in `LICENSE` covers only the ColdMC code in this repository. It grants nothing for Fake Player Plugin, which stays under Bill_Hub's own licence.
