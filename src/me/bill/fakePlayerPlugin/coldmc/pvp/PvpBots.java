@@ -113,7 +113,10 @@ public final class PvpBots implements Listener {
 
     public void reload() {
         loadSettings();
-        for (BotBrain b : brains.values()) b.profile = settings.profile(b.profile.id);
+        for (BotBrain b : brains.values()) {
+            if (b.beforeDuel != null) b.beforeDuel = settings.profile(b.beforeDuel.id);
+            b.profile = settings.profile(b.profile.id);
+        }
         lastModelCheck = 0;
     }
 
@@ -231,6 +234,76 @@ public final class PvpBots implements Listener {
             lastFill = now;
             autoFill();
         }
+        if (settings.enabled) duelFill(now);
+    }
+
+    // ================================================================== duel queue fill
+
+    /** Real players waiting in a duel queue, and since when (seen by this once-a-second sweep). */
+    private final Map<UUID, Long> queuedSince = new java.util.HashMap<>();
+    /** A bot spawned for one waiting player, so a second spawn is not started while it logs in. */
+    private long duelSpawnAt;
+
+    /**
+     * the owner, 2026-11-25: "when you are queueing for over 20 seconds without any real player joining,
+     * you get queued with a random skilled/veteran/etc bot/alt in the arena". A real player alone in
+     * a queue for duels.fill-after-seconds, with a free arena for it, is matched with an idle PvP bot
+     * (one not duelling, not in combat). The bot plays the duel with a profile drawn from
+     * duels.profiles and goes back to its own afterwards. No idle bot: one is spawned (within
+     * max-bots) and used once it is in the arena.
+     */
+    private void duelFill(long now) {
+        KitPvpHook kp = kitpvp();
+        if (kp == null || settings.duelFillSeconds <= 0) { queuedSince.clear(); return; }
+        for (BotBrain b : brains.values()) {           // a bot whose duel is over plays as itself again
+            if (b.beforeDuel == null) continue;
+            Player bp = b.fp.getPlayer();
+            if (bp == null || !kp.inDuel(bp)) { b.profile = b.beforeDuel; b.beforeDuel = null; }
+        }
+        Map<UUID, String> q = kp.queued();
+        queuedSince.keySet().retainAll(q.keySet());
+        for (Map.Entry<UUID, String> e : q.entrySet()) {
+            Player p = Bukkit.getPlayer(e.getKey());
+            if (p == null || isBot(p)) continue;
+            long since = queuedSince.computeIfAbsent(e.getKey(), k -> now);
+            if (now - since < settings.duelFillSeconds * 1000L) continue;
+            String queue = e.getValue();
+            if (kp.queueSize(queue) != 1 || !kp.queueHasFreeArena(queue) || kp.inCombat(p)) continue;
+            BotBrain pick = idleDuelBot(kp);
+            if (pick == null) {
+                if (now - duelSpawnAt > 30_000 && brains.size() + pendingSpawns() < settings.maxBots) {
+                    String arena = kp.resolveArena(settings.arena);
+                    if (arena != null && spawnBots(1, pickDuelProfile(), true, kp.arenaSpawn(arena)) > 0) duelSpawnAt = now;
+                }
+                continue;
+            }
+            Player bot = pick.fp.getPlayer();
+            Profile was = pick.profile;
+            pick.profile = settings.profile(pickDuelProfile());
+            if (!kp.startDuel(p, bot, queue)) { pick.profile = was; continue; }
+            pick.beforeDuel = was;
+            pick.sleep(bot);
+            queuedSince.remove(e.getKey());
+            plugin.getLogger().info("[pvp] " + p.getName() + " waited " + (now - since) / 1000 + " s in the " + queue
+                    + " queue: matched with bot " + pick.fp.getName() + " (" + pick.profile.id + ").");
+        }
+    }
+
+    /** A PvP bot inside KitPvP that is free to duel: not duelling, not queued, not in combat. Random among them. */
+    private BotBrain idleDuelBot(KitPvpHook kp) {
+        List<BotBrain> free = new ArrayList<>();
+        for (BotBrain b : brains.values()) {
+            Player bp = b.fp.getPlayer();
+            if (bp == null || !bp.isOnline() || bp.isDead() || b.forcedTarget != null) continue;
+            if (!kp.inGame(bp) || kp.inDuel(bp) || kp.inQueue(bp) || kp.inCombat(bp)) continue;
+            free.add(b);
+        }
+        return free.isEmpty() ? null : free.get(ThreadLocalRandom.current().nextInt(free.size()));
+    }
+
+    private String pickDuelProfile() {
+        List<String> l = settings.duelProfiles;
+        return l.get(ThreadLocalRandom.current().nextInt(l.size()));
     }
 
     /**
@@ -325,7 +398,7 @@ public final class PvpBots implements Listener {
     boolean noFightAt(Player bot, Location l) {
         if (settings.respectWorldGuard && worldGuard != null && !worldGuard.pvpAllowed(l)) return true;
         KitPvpHook kp = kitpvp();
-        if (kp != null && settings.spawnSafeRadius > 0 && kp.inGame(bot)) return kp.nearSpawn(kp.arenaId(bot), l, settings.spawnSafeRadius);
+        if (kp != null && settings.spawnSafeRadius > 0 && kp.inGame(bot) && !kp.inDuel(bot)) return kp.nearSpawn(kp.arenaId(bot), l, settings.spawnSafeRadius);
         return false;
     }
 

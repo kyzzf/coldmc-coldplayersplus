@@ -39,6 +39,8 @@ final class PvpSettings {
     final int flushSeconds, fileMinutes, maxQueue, maxDiskMb, retentionDays;
     final String modelFile;
     final int watchModelSeconds;
+    final int duelFillSeconds;
+    final List<String> duelProfiles;
     final Map<String, Profile> profiles = new LinkedHashMap<>();
 
     PvpSettings(YamlConfiguration c) {
@@ -87,6 +89,9 @@ final class PvpSettings {
         retentionDays = Math.max(0, c.getInt("learning.retention-days", 0));
         modelFile = c.getString("learning.model-file", "combat-model.txt").replace("..", "");
         watchModelSeconds = Math.max(0, c.getInt("learning.watch-model-seconds", 60));
+        duelFillSeconds = Math.max(0, c.getInt("duels.fill-after-seconds", 20));
+        List<String> dp = c.getStringList("duels.profiles");
+        duelProfiles = dp.isEmpty() ? List.of("skilled", "veteran") : dp;
 
         ConfigurationSection ps = c.getConfigurationSection("profiles");
         Profile def = Profile.of("default", ps != null && ps.isConfigurationSection("default") ? ps.getConfigurationSection("default") : new YamlConfiguration(), null);

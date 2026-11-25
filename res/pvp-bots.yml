@@ -52,6 +52,15 @@ kitpvp:
     # '' = the arena's first spawn.
     spawn-location: ''
 
+# Duel queues (the owner, 2026-11-25). A real player who waits alone in a duel queue this many seconds,
+# while an arena for it is free, is matched with a PvP bot: an idle one in the arena (not duelling,
+# not in combat), or a new one if none is free and max-bots allows. For that duel the bot plays a
+# profile drawn from the list (repeat a name to make it more likely), then goes back to its own.
+# 0 = bots never fill a queue.
+duels:
+  fill-after-seconds: 20
+  profiles: [skilled, veteran]
+
 # Names for bots spawned by auto-fill and /cpp pvp spawn. A free one is picked at random.
 # [] = "Bot" + 4 digits. A name that is a real account wears that account's skin
 # (skin.by-name in config.yml).

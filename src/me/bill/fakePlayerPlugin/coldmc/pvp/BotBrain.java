@@ -47,6 +47,8 @@ final class BotBrain {
     final boolean autoFill;
     /** A forced opponent from /cpp pvp fight, regardless of arena or world rules. */
     UUID forcedTarget;
+    /** The bot's own profile while it plays a queue-fill duel with a drawn one; null otherwise. */
+    Profile beforeDuel;
 
     private final ThreadLocalRandom rnd = ThreadLocalRandom.current();
 
@@ -84,6 +86,7 @@ final class BotBrain {
 
     // kit and arena
     private long pickKitAt = -1;
+    private boolean duelArmed;
     private long nextJoinTry;
     private long nextWanderPick;
     private Location wanderTo;
@@ -151,8 +154,12 @@ final class BotBrain {
                 }
                 return;
             }
-            if (kp.inDuel(bot)) { release(bot); return; } // duels are not for bots
-            if (!kp.hasKit(bot)) {
+            if (kp.inDuel(bot)) {
+                // A bot only duels when PvpBots put it in to fill a queue nobody else joined. It keeps
+                // the kit the duel hands out, waits out the countdown, then fights its opponent only.
+                if (!kp.duelStarted(bot) || !kp.hasKit(bot)) { release(bot); target = null; healing = false; duelArmed = false; return; }
+                if (!duelArmed) { duelArmed = true; selectWeapon(bot); }   // the duel kit was just handed out
+            } else if (!kp.hasKit(bot)) {
                 release(bot);
                 target = null;
                 healing = false;
@@ -164,6 +171,7 @@ final class BotBrain {
         }
 
         Player t = resolveTarget(bot, now, kp);
+        if (t == null && kp != null && kp.inDuel(bot)) { release(bot); return; } // no roaming off a duel platform
         if (t == null) { wander(bot, now); return; }
 
         // ---- perception lag
@@ -204,6 +212,12 @@ final class BotBrain {
             Player f = Bukkit.getPlayer(forcedTarget);
             if (f != null && f.isOnline() && !f.isDead() && f.getWorld() == bot.getWorld()) { setTarget(f, now); return f; }
             forcedTarget = null;
+        }
+        if (kp != null && kp.inDuel(bot)) {
+            Player o = kp.duelOpponent(bot);
+            if (o == null || !o.isOnline() || o.isDead() || o.getWorld() != bot.getWorld()) { target = null; return null; }
+            setTarget(o, now);
+            return o;
         }
         Player cur = target == null ? null : Bukkit.getPlayer(target);
         double range = svc.settings().targetRange;

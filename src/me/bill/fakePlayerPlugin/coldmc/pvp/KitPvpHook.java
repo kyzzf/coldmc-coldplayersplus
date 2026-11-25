@@ -62,6 +62,46 @@ final class KitPvpHook {
 
     boolean isArenaWorld(String world) { return kp.game.isArenaWorld(world); }
 
+    // ---------------------------------------------------------------- duels (queue fill, the owner 2026-11-25)
+
+    /** Everyone waiting in a duel queue: uuid -> queue id. */
+    java.util.Map<java.util.UUID, String> queued() {
+        java.util.Map<java.util.UUID, String> out = new java.util.HashMap<>();
+        for (java.util.Map.Entry<String, java.util.LinkedHashSet<java.util.UUID>> e : kp.game.queues.entrySet())
+            for (java.util.UUID u : e.getValue()) out.put(u, e.getKey());
+        return out;
+    }
+
+    int queueSize(String queue) { return kp.game.queueSize(queue); }
+
+    boolean queueHasFreeArena(String queue) { return kp.game.freeArena(queue) != null; }
+
+    boolean inQueue(Player p) { return kp.game.queueOf(p) != null; }
+
+    /** Starts a duel between a and b on a free arena of the queue, through KitPvP's own startDuel. */
+    boolean startDuel(Player a, Player b, String queue) {
+        Session x = s(a), y = s(b);
+        if (x == null || y == null || x.duel != null || y.duel != null || x.inCombat() || y.inCombat()) return false;
+        Arena free = kp.game.freeArena(queue);
+        if (free == null) return false;
+        kp.game.startDuel(x, y, free);
+        return x.duel != null && x.duel == y.duel;
+    }
+
+    /** The other side of p's duel, or null. */
+    Player duelOpponent(Player p) {
+        Session s = s(p);
+        if (s == null || s.duel == null || s.duel.over) return null;
+        Session o = s.duel.other(s);
+        return o == null ? null : o.player;
+    }
+
+    /** True once p's duel countdown (or kit-choice window) is over and the fight is on. */
+    boolean duelStarted(Player p) {
+        Session s = s(p);
+        return s != null && s.duel != null && !s.duel.over && s.duel.started();
+    }
+
     // KitPvP's own isSoup() runs Material.matchMaterial (a regex) on every call; the brain asks per
     // inventory slot per decision, which cost ~13 ms a tick with 3 bots (jstack, dev 2026-11-23).
     private org.bukkit.Material soup;
